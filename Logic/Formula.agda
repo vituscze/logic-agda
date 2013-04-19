@@ -8,6 +8,7 @@ open import Data.Product
   using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂; map; zip)
 open import Data.Unit
   using (⊤; tt)
+open import Function
 
 open import Logic.Term
 open import Logic.Formula.PrenexTree
@@ -81,10 +82,10 @@ prepend {t₁ = t′} (ex  x ∷ qs) φ | t , φ′ , pf = both        , ex  x �
 
 remove : ∀ {R F V p t} → Formula R F V p t → Formula R F V yep none × PrenexTree V
 remove (rel r ts) = rel r ts , nil
-remove (all x φ)  = map (λ x → x) (add (all x)) (remove φ)
-remove (ex  x φ)  = map (λ x → x) (add (ex  x)) (remove φ) 
+remove (all x φ)  = map id (add (all x)) (remove φ)
+remove (ex  x φ)  = map id (add (ex  x)) (remove φ)
 remove (not φ)    = map not swapAll    (remove φ)
 remove (and φ ψ)  = zip and merge-tree (remove φ) (remove ψ)
 remove (or  φ ψ)  = zip or  merge-tree (remove φ) (remove ψ)
-remove (imp φ ψ)  = zip imp (λ l r → merge-tree (swapAll l) r) (remove φ) (remove ψ)
+remove (imp φ ψ)  = zip imp (merge-tree ∘ swapAll) (remove φ) (remove ψ)
 
