@@ -73,7 +73,7 @@ data Formula (R F V : Set) : Prenex → Type → Set where
 data Q (V : Set) : Set where
   all ex : V → Q V
 
-prepend : ∀ {R F V t₁} → List (Q V) → Formula R F V yep t₁ → Σ[ t₂ ∈ Type ] (Formula R F V yep t₂ × t₁ ≤ t₂)
+prepend : ∀ {R F V p t₁} → List (Q V) → Formula R F V p t₁ → Σ[ t₂ ∈ Type ] (Formula R F V p t₂ × t₁ ≤ t₂)
 prepend {t₁ = t} [] φ = _ , φ , refl t
 prepend (q ∷ qs) φ with prepend qs φ
 prepend {t₁ = t′} (all x ∷ qs) φ | t , φ′ , pf = merge t all , all x φ′ , merge-t t′ t pf
