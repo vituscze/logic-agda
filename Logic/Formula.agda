@@ -32,10 +32,10 @@ refl none = tt
 refl all  = tt
 refl both = tt
 
-both-max : ∀ t → t ≤ both
-both-max none = tt
-both-max all  = tt
-both-max both = tt
+bothMax : ∀ t → t ≤ both
+bothMax none = tt
+bothMax all  = tt
+bothMax both = tt
 
 merge : (t₁ t₂ : Type) → Type
 merge none t₂   = t₂
@@ -43,41 +43,41 @@ merge all  both = both
 merge all  t₂   = all
 merge both t₂   = both
 
-merge-t : ∀ t₁ t₂ → t₁ ≤ t₂ → t₁ ≤ merge t₂ all
-merge-t none t₂   = λ _ → tt
-merge-t all  none = λ _ → tt
-merge-t all  all  = λ _ → tt
-merge-t all  both = λ _ → tt
-merge-t both none = λ z → z
-merge-t both all  = λ z → z
-merge-t both both = λ _ → tt
+mergeT : ∀ t₁ t₂ → t₁ ≤ t₂ → t₁ ≤ merge t₂ all
+mergeT none t₂   = λ _ → tt
+mergeT all  none = λ _ → tt
+mergeT all  all  = λ _ → tt
+mergeT all  both = λ _ → tt
+mergeT both none = λ z → z
+mergeT both all  = λ z → z
+mergeT both both = λ _ → tt
 
 data Prenex : Set where
   nope yep : Prenex
 
-is-prenex : Prenex → Type → Prenex
-is-prenex yep none = yep
-is-prenex _   _    = nope
+isPrenex : Prenex → Type → Prenex
+isPrenex yep none = yep
+isPrenex _   _    = nope
 
-p-both : Prenex → Prenex → Prenex
-p-both yep yep = yep
-p-both _   _   = nope
+pBoth : Prenex → Prenex → Prenex
+pBoth yep yep = yep
+pBoth _   _   = nope
 
 data Formula (R F V : Set) : Prenex → Type → Set where
   rel        : (r : R) (ts : List (Term F V))          → Formula R F V yep none
   all        : ∀ {p t} (x : V) (φ : Formula R F V p t) → Formula R F V p (merge t all)
   ex         : ∀ {p t} (x : V) (φ : Formula R F V p t) → Formula R F V p both
-  not        : ∀ {p t}         (φ : Formula R F V p t) → Formula R F V (is-prenex p t) t
+  not        : ∀ {p t}         (φ : Formula R F V p t) → Formula R F V (isPrenex p t) t
   and or imp : ∀ {p₁ p₂ t₁ t₂} (φ : Formula R F V p₁ t₁) (ψ : Formula R F V p₂ t₂) →
-    let p = p-both p₁ p₂
+    let p = pBoth p₁ p₂
         t = merge  t₁ t₂
-    in Formula R F V (is-prenex p t) t
+    in Formula R F V (isPrenex p t) t
 
 prepend : ∀ {R F V p t₁} → List (Q V) → Formula R F V p t₁ → Σ[ t₂ ∈ Type ] (Formula R F V p t₂ × t₁ ≤ t₂)
 prepend {t₁ = t}  []           φ = _ , φ , refl t
 prepend           (q     ∷ qs) φ with prepend qs φ
-prepend {t₁ = t′} (all x ∷ qs) φ | t , φ′ , pf = merge t all , all x φ′ , merge-t t′ t pf
-prepend {t₁ = t′} (ex  x ∷ qs) φ | t , φ′ , pf = both        , ex  x φ′ , both-max t′
+prepend {t₁ = t′} (all x ∷ qs) φ | t , φ′ , pf = merge t all , all x φ′ , mergeT t′ t pf
+prepend {t₁ = t′} (ex  x ∷ qs) φ | t , φ′ , pf = both        , ex  x φ′ , bothMax t′
 
 remove : ∀ {R F V p t} → Formula R F V p t → Formula R F V yep none × PrenexTree V
 remove (rel r ts) = rel r ts , nil
