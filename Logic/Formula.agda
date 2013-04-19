@@ -5,11 +5,14 @@ open import Data.Empty
 open import Data.List
   using (List; []; _∷_)
 open import Data.Product
-  using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂)
+  using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂; map; zip)
 open import Data.Unit
   using (⊤; tt)
 
 open import Logic.Term
+open import Logic.Formula.PrenexTree
+  using (Q; all; ex; PrenexTree; add; nil; swapAll; toList)
+  renaming (merge to merge-tree)
 
 infix 5 _≤_
 
@@ -70,21 +73,18 @@ data Formula (R F V : Set) : Prenex → Type → Set where
         t = merge  t₁ t₂
     in Formula R F V (is-prenex p t) t
 
-data Q (V : Set) : Set where
-  all ex : V → Q V
-
 prepend : ∀ {R F V p t₁} → List (Q V) → Formula R F V p t₁ → Σ[ t₂ ∈ Type ] (Formula R F V p t₂ × t₁ ≤ t₂)
 prepend {t₁ = t}  []           φ = _ , φ , refl t
 prepend           (q     ∷ qs) φ with prepend qs φ
 prepend {t₁ = t′} (all x ∷ qs) φ | t , φ′ , pf = merge t all , all x φ′ , merge-t t′ t pf
 prepend {t₁ = t′} (ex  x ∷ qs) φ | t , φ′ , pf = both        , ex  x φ′ , both-max t′
 
--- todo: also collect removed quantifiers
-remove : ∀ {R F V p t} → Formula R F V p t → Formula R F V yep none
-remove (rel r ts) = rel r ts
-remove (all x φ)  = remove φ
-remove (ex  x φ)  = remove φ
-remove (not φ)    = remove φ
-remove (and φ ψ)  = and (remove φ) (remove ψ)
-remove (or  φ ψ)  = or  (remove φ) (remove ψ)
-remove (imp φ ψ)  = imp (remove φ) (remove ψ)
+remove : ∀ {R F V p t} → Formula R F V p t → Formula R F V yep none × PrenexTree V
+remove (rel r ts) = rel r ts , nil
+remove (all x φ)  = map (λ x → x) (add (all x)) (remove φ)
+remove (ex  x φ)  = map (λ x → x) (add (ex  x)) (remove φ) 
+remove (not φ)    = map not swapAll    (remove φ)
+remove (and φ ψ)  = zip and merge-tree (remove φ) (remove ψ)
+remove (or  φ ψ)  = zip or  merge-tree (remove φ) (remove ψ)
+remove (imp φ ψ)  = zip imp (λ l r → merge-tree (swapAll l) r) (remove φ) (remove ψ)
+
