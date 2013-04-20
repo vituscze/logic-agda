@@ -117,20 +117,16 @@ module Rename
   RenameM A = RWS Tree ⊤ (Stream V′) A
 
   open RWSMonad Tree ⊤ (Stream V′) (λ _ _ → tt) tt
+  open RawMonad monad
 
   getS : RenameM V′
   getS _ (x ∷ xs) = x , ♭ xs , tt
 
   localInsert : ∀ {A} → V → RenameM A → RenameM (V′ × A)
   localInsert v m = getS >>= λ v′ → local (insert v v′) m >>= λ a → return (v′ , a)
-    where
-      open RawMonad monad
 
   renameT : ∀ {F} → Stream V′ → Term F V → RenameM (Term F (V ⊎ V′))
   renameT vs (var x) = ask >>= λ t → return (var (maybe′ inj₂ (inj₁ x) (lookup x t)))
-    where
-      open RawMonad monad
-
   renameT vs (fun f ts) = {!!}
 
   rename : ∀ {R F t p} → Stream V′ → Formula R F V t p → RenameM (Formula R F V′ t p)
