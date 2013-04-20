@@ -32,25 +32,25 @@ open import Logic.Formula.PrenexTree
   using (Q; all; ex; PrenexTree; add; nil; swapAll; toList)
   renaming (merge to merge-tree)
 
-infix 5 _≤_
+infix 5 _≤t_
 
 -- Defines what kind of quantifiers does a formula contain.
 data Type : Set where
   none all both : Type
 
-_≤_ : (t₁ t₂ : Type) → Set
-none ≤ t₂   = ⊤
-all  ≤ none = ⊥
-all  ≤ t₂   = ⊤
-both ≤ both = ⊤
-both ≤ t₂   = ⊥
+_≤t_ : (t₁ t₂ : Type) → Set
+none ≤t t₂   = ⊤
+all  ≤t none = ⊥
+all  ≤t t₂   = ⊤
+both ≤t both = ⊤
+both ≤t t₂   = ⊥
 
-refl : ∀ t → t ≤ t
-refl none = tt
-refl all  = tt
-refl both = tt
+t-refl : ∀ t → t ≤t t
+t-refl none = tt
+t-refl all  = tt
+t-refl both = tt
 
-bothMax : ∀ t → t ≤ both
+bothMax : ∀ t → t ≤t both
 bothMax none = tt
 bothMax all  = tt
 bothMax both = tt
@@ -61,14 +61,14 @@ merge all  both = both
 merge all  t₂   = all
 merge both t₂   = both
 
-mergeT : ∀ t₁ t₂ → t₁ ≤ t₂ → t₁ ≤ merge t₂ all
-mergeT none t₂   = λ _ → tt
-mergeT all  none = λ _ → tt
-mergeT all  all  = λ _ → tt
-mergeT all  both = λ _ → tt
-mergeT both none = λ z → z
-mergeT both all  = λ z → z
-mergeT both both = λ _ → tt
+merge-≤ : ∀ t₁ t₂ → t₁ ≤t t₂ → t₁ ≤t merge t₂ all
+merge-≤ none t₂   = λ _ → tt
+merge-≤ all  none = λ _ → tt
+merge-≤ all  all  = λ _ → tt
+merge-≤ all  both = λ _ → tt
+merge-≤ both none = λ z → z
+merge-≤ both all  = λ z → z
+merge-≤ both both = λ _ → tt
 
 data Prenex : Set where
   nope yep : Prenex
@@ -91,10 +91,10 @@ data Formula (R F V : Set) : Prenex → Type → Set where
         t = merge  t₁ t₂
     in Formula R F V (isPrenex p t) t
 
-prepend : ∀ {R F V p t₁} → List (Q V) → Formula R F V p t₁ → Σ[ t₂ ∈ Type ] (Formula R F V p t₂ × t₁ ≤ t₂)
-prepend {t₁ = t}  []           φ = _ , φ , refl t
+prepend : ∀ {R F V p t₁} → List (Q V) → Formula R F V p t₁ → Σ[ t₂ ∈ Type ] (Formula R F V p t₂ × t₁ ≤t t₂)
+prepend {t₁ = t}  []           φ = _ , φ , t-refl t
 prepend           (q     ∷ qs) φ with prepend qs φ
-prepend {t₁ = t′} (all x ∷ qs) φ | t , φ′ , pf = merge t all , all x φ′ , mergeT t′ t pf
+prepend {t₁ = t′} (all x ∷ qs) φ | t , φ′ , pf = merge t all , all x φ′ , merge-≤ t′ t pf
 prepend {t₁ = t′} (ex  x ∷ qs) φ | t , φ′ , pf = both        , ex  x φ′ , bothMax t′
 
 remove : ∀ {R F V p t} → Formula R F V p t → Formula R F V yep none × PrenexTree V
@@ -119,11 +119,11 @@ module Rename
   RenameM : Set → Set
   RenameM = RWS
 
-  getS : RenameM V′
-  getS _ (x ∷ xs) = x , ♭ xs , tt
+  getVar : RenameM V′
+  getVar _ (x ∷ xs) = x , ♭ xs , tt
 
   localInsert : ∀ {A} → V → RenameM A → RenameM (V′ × A)
-  localInsert v m = getS >>= λ v′ → local (insert v v′) m >>= λ a → return (v′ , a)
+  localInsert v m = getVar >>= λ v′ → local (insert v v′) m >>= λ a → return (v′ , a)
 
   updateVar : V → RenameM (V ⊎ V′)
   updateVar v = ask >>= λ t → return (maybe′ inj₂ (inj₁ v) (lookup v t))
