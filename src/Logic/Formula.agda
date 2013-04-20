@@ -27,6 +27,7 @@ open import Relation.Binary.PropositionalEquality
   renaming (refl to ≡-refl)
 
 open import Category.Monad.RWS
+  using ()
 open import Logic.Term
 open import Logic.Formula.PrenexTree
   using (Q; all; ex; PrenexTree; add; nil; swapAll; toList)
@@ -113,7 +114,7 @@ module Rename
 
   open Data.AVL (λ _ → V′) isStrictTotalOrder
 
-  open RWSMonad Tree ⊤ (Stream V′) (λ _ _ → tt) tt
+  open Category.Monad.RWS Tree ⊤ (Stream V′) (λ _ _ → tt) tt
   open RawMonad monad
 
   RenameM : Set → Set
