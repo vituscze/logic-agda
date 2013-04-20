@@ -113,11 +113,11 @@ module Rename
 
   open Data.AVL (λ _ → V′) isStrictTotalOrder
 
-  RenameM : Set → Set
-  RenameM A = RWS Tree ⊤ (Stream V′) A
-
   open RWSMonad Tree ⊤ (Stream V′) (λ _ _ → tt) tt
   open RawMonad monad
+
+  RenameM : Set → Set
+  RenameM = RWS
 
   getS : RenameM V′
   getS _ (x ∷ xs) = x , ♭ xs , tt
