@@ -137,12 +137,11 @@ module Rename
       go []       = return []
       go (t ∷ ts) = renameT t >>= λ t′ → go ts >>= λ ts′ → return (t′ ∷ ts′) 
 
-  -- todo: Use applicative style later.
   rename : ∀ {R F t p} → Formula R F V t p → RenameM (Formula R F (V ⊎ V′) t p)
-  rename (rel r ts) = mapM monad renameT ts >>= return ∘ rel r
-  rename (all x φ)  = updateVar x >>= λ x′ → rename φ >>= return ∘ all x′
-  rename (ex  x φ)  = updateVar x >>= λ x′ → rename φ >>= return ∘ ex x′
-  rename (not φ)    = rename φ >>= return ∘ not
-  rename (and φ ψ)  = rename φ >>= λ φ′ → rename ψ >>= return ∘ and φ′
-  rename (or  φ ψ)  = rename φ >>= λ φ′ → rename ψ >>= return ∘ or φ′
-  rename (imp φ ψ)  = rename φ >>= λ φ′ → rename ψ >>= return ∘ imp φ′
+  rename (rel r ts) = rel r <$> mapM monad renameT ts
+  rename (all x φ)  = all <$> updateVar x ⊛ rename φ
+  rename (ex  x φ)  = ex  <$> updateVar x ⊛ rename φ
+  rename (not φ)    = not <$> rename φ
+  rename (and φ ψ)  = and <$> rename φ ⊛ rename ψ
+  rename (or  φ ψ)  = or  <$> rename φ ⊛ rename ψ
+  rename (imp φ ψ)  = imp <$> rename φ ⊛ rename ψ
