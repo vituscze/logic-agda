@@ -11,13 +11,13 @@ open import Relation.Binary.PropositionalEquality
 open import Data.Unit
   using (⊤; tt)
 
-RWS : (R W S A : Set) → Set
-RWS R W S A = R → S → A × S × W
-
 -- Does not require IsMonoid for simplicity.
 module RWSMonad (R W S : Set) (_∙_ : W → W → W) (ε : W) where
 
-  monad : RawMonad (RWS R W S)
+  RWS : Set → Set
+  RWS A = R → S → A × S × W
+
+  monad : RawMonad RWS
   monad = record
     { return = λ a r s → a , s , ε
     ; _>>=_  = λ m f r s →
@@ -26,17 +26,17 @@ module RWSMonad (R W S : Set) (_∙_ : W → W → W) (ε : W) where
         in b , s″ , w ∙ w′
     }
 
-  ask : RWS R W S R
+  ask : RWS R
   ask r s = r , s , ε
 
-  local : ∀ {A} → (R → R) → RWS R W S A → RWS R W S A
+  local : ∀ {A} → (R → R) → RWS A → RWS A
   local f m r s = m (f r) s
 
-  get : RWS R W S S
+  get : RWS S
   get r s = s , s , ε
 
-  put : S → RWS R W S ⊤
+  put : S → RWS ⊤
   put s r _ = tt , s , ε
 
-  tell : W → RWS R W S ⊤
+  tell : W → RWS ⊤
   tell w r s = tt , s , w
