@@ -7,7 +7,7 @@ open import Data.AVL
 open import Data.Empty
   using (⊥; ⊥-elim)
 open import Data.List
-  using (List; []; _∷_)
+  using (List; []; _∷_; mapM)
 open import Data.Maybe
   using (Maybe; maybe′)
 open import Data.Product
@@ -125,15 +125,24 @@ module Rename
   localInsert : ∀ {A} → V → RenameM A → RenameM (V′ × A)
   localInsert v m = getS >>= λ v′ → local (insert v v′) m >>= λ a → return (v′ , a)
 
-  renameT : ∀ {F} → Stream V′ → Term F V → RenameM (Term F (V ⊎ V′))
-  renameT vs (var x) = ask >>= λ t → return (var (maybe′ inj₂ (inj₁ x) (lookup x t)))
-  renameT vs (fun f ts) = {!!}
+  updateVar : V → RenameM (V ⊎ V′)
+  updateVar v = ask >>= λ t → return (maybe′ inj₂ (inj₁ v) (lookup v t))
 
-  rename : ∀ {R F t p} → Stream V′ → Formula R F V t p → RenameM (Formula R F V′ t p)
-  rename vs (rel r ts) = {!!}
-  rename vs (all x φ) = {!!}
-  rename vs (ex x φ) = {!!}
-  rename vs (not φ) = {!!}
-  rename vs (and φ ψ) = {!!}
-  rename vs (or φ ψ) = {!!}
-  rename vs (imp φ ψ) = {!!}
+  renameT : ∀ {F} → Term F V → RenameM (Term F (V ⊎ V′))
+  renameT     (var x) = updateVar x >>= return ∘ var
+  renameT {F} (fun f ts) = go ts >>= λ ts′ → return (fun f ts′)
+    where
+      -- Help the termination checker a bit.
+      go : List (Term F V) → RenameM (List (Term F (V ⊎ V′)))
+      go []       = return []
+      go (t ∷ ts) = renameT t >>= λ t′ → go ts >>= λ ts′ → return (t′ ∷ ts′) 
+
+  -- todo: Use applicative style later.
+  rename : ∀ {R F t p} → Formula R F V t p → RenameM (Formula R F (V ⊎ V′) t p)
+  rename (rel r ts) = mapM monad renameT ts >>= return ∘ rel r
+  rename (all x φ)  = updateVar x >>= λ x′ → rename φ >>= return ∘ all x′
+  rename (ex  x φ)  = updateVar x >>= λ x′ → rename φ >>= return ∘ ex x′
+  rename (not φ)    = rename φ >>= return ∘ not
+  rename (and φ ψ)  = rename φ >>= λ φ′ → rename ψ >>= return ∘ and φ′
+  rename (or  φ ψ)  = rename φ >>= λ φ′ → rename ψ >>= return ∘ or φ′
+  rename (imp φ ψ)  = rename φ >>= λ φ′ → rename ψ >>= return ∘ imp φ′
