@@ -88,4 +88,3 @@ remove (not φ)    = map not swapAll    (remove φ)
 remove (and φ ψ)  = zip and merge-tree (remove φ) (remove ψ)
 remove (or  φ ψ)  = zip or  merge-tree (remove φ) (remove ψ)
 remove (imp φ ψ)  = zip imp (merge-tree ∘ swapAll) (remove φ) (remove ψ)
-
