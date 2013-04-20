@@ -9,11 +9,13 @@ open import Data.Empty
 open import Data.List
   using (List; []; _∷_)
 open import Data.Maybe
-  using (Maybe; just; nothing)
+  using (Maybe; maybe′)
 open import Data.Product
   using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂; map; zip)
 open import Data.Stream
   using (Stream; _∷_)
+open import Data.Sum
+  using (_⊎_; inj₁; inj₂)
 open import Data.Unit
   using (⊤; tt)
 open import Function
@@ -124,18 +126,10 @@ module Rename
     where
       open RawMonad monad
 
-  renameT : ∀ {F} → Stream V′ → Term F V → RenameM (Term F V′)
-  renameT vs (var x) = ask >>= λ t → return (var (fromJust (lookup x t) sorry))
+  renameT : ∀ {F} → Stream V′ → Term F V → RenameM (Term F (V ⊎ V′))
+  renameT vs (var x) = ask >>= λ t → return (var (maybe′ inj₂ (inj₁ x) (lookup x t)))
     where
       open RawMonad monad
-
-      fromJust : (x : Maybe V′) → (x ≡ nothing → ⊥) → V′
-      fromJust (just x) pf = x
-      fromJust nothing pf = ⊥-elim (pf ≡-refl)
-
-      postulate
-        -- Sorry for that.
-        sorry : {x : Maybe V′} → x ≡ nothing → ⊥
 
   renameT vs (fun f ts) = {!!}
 
