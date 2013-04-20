@@ -1,15 +1,30 @@
 module Logic.Formula where
 
+open import Category.Monad
+open import Coinduction
+open import Data.AVL
+  using ()
 open import Data.Empty
-  using (⊥)
+  using (⊥; ⊥-elim)
 open import Data.List
   using (List; []; _∷_)
+open import Data.Maybe
+  using (Maybe; just; nothing)
 open import Data.Product
   using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂; map; zip)
+open import Data.Stream
+  using (Stream; _∷_)
 open import Data.Unit
   using (⊤; tt)
 open import Function
+open import Level
+  using ()
+open import Relation.Binary
+open import Relation.Binary.PropositionalEquality
+  using (_≡_)
+  renaming (refl to ≡-refl)
 
+open import Category.Monad.RWS
 open import Logic.Term
 open import Logic.Formula.PrenexTree
   using (Q; all; ex; PrenexTree; add; nil; swapAll; toList)
@@ -88,3 +103,47 @@ remove (not φ)    = map not swapAll    (remove φ)
 remove (and φ ψ)  = zip and merge-tree (remove φ) (remove ψ)
 remove (or  φ ψ)  = zip or  merge-tree (remove φ) (remove ψ)
 remove (imp φ ψ)  = zip imp (merge-tree ∘ swapAll) (remove φ) (remove ψ)
+
+module Rename
+  {V V′ : Set} {_<_ : Rel V Level.zero}
+  (isStrictTotalOrder : IsStrictTotalOrder _≡_ _<_)
+  where
+
+  open Data.AVL (λ _ → V′) isStrictTotalOrder
+
+  RenameM : Set → Set
+  RenameM A = RWS Tree ⊤ (Stream V′) A
+
+  open RWSMonad Tree ⊤ (Stream V′) (λ _ _ → tt) tt
+
+  getS : RenameM V′
+  getS _ (x ∷ xs) = x , ♭ xs , tt
+
+  localInsert : ∀ {A} → V → RenameM A → RenameM (V′ × A)
+  localInsert v m = getS >>= λ v′ → local (insert v v′) m >>= λ a → return (v′ , a)
+    where
+      open RawMonad monad
+
+  renameT : ∀ {F} → Stream V′ → Term F V → RenameM (Term F V′)
+  renameT vs (var x) = ask >>= λ t → return (var (fromJust (lookup x t) sorry))
+    where
+      open RawMonad monad
+
+      fromJust : (x : Maybe V′) → (x ≡ nothing → ⊥) → V′
+      fromJust (just x) pf = x
+      fromJust nothing pf = ⊥-elim (pf ≡-refl)
+
+      postulate
+        -- Sorry for that.
+        sorry : {x : Maybe V′} → x ≡ nothing → ⊥
+
+  renameT vs (fun f ts) = {!!}
+
+  rename : ∀ {R F t p} → Stream V′ → Formula R F V t p → RenameM (Formula R F V′ t p)
+  rename vs (rel r ts) = {!!}
+  rename vs (all x φ) = {!!}
+  rename vs (ex x φ) = {!!}
+  rename vs (not φ) = {!!}
+  rename vs (and φ ψ) = {!!}
+  rename vs (or φ ψ) = {!!}
+  rename vs (imp φ ψ) = {!!}
