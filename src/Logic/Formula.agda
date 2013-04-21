@@ -129,24 +129,25 @@ module Rename
   updateVar : V → RenameM (V ⊎ V′)
   updateVar v = maybe′ inj₂ (inj₁ v) ∘ lookup v <$> ask
 
-  module Dummy where
-    renameT : ∀ {F} → Term F V → RenameM (Term F (V ⊎ V′))
-    renameT     (var x)    = var   <$> updateVar x
-    renameT {F} (fun f ts) = fun f <$> go ts
-      where
-        -- Help the termination checker a bit.
-        go : List (Term F V) → RenameM (List (Term F (V ⊎ V′)))
-        go []       = return []
-        go (t ∷ ts) = _∷_ <$> renameT t ⊛ go ts
+  private
+    module Dummy where
+      renameT : ∀ {F} → Term F V → RenameM (Term F (V ⊎ V′))
+      renameT     (var x)    = var   <$> updateVar x
+      renameT {F} (fun f ts) = fun f <$> go ts
+        where
+          -- Help the termination checker a bit.
+          go : List (Term F V) → RenameM (List (Term F (V ⊎ V′)))
+          go []       = return []
+          go (t ∷ ts) = _∷_ <$> renameT t ⊛ go ts
 
-    rename : ∀ {R F t p} → Formula R F V t p → RenameM (Formula R F (V ⊎ V′) t p)
-    rename (rel r ts) = rel r <$> mapM monad renameT ts
-    rename (all x φ)  = all <$> updateVar x ⊛ rename φ
-    rename (ex  x φ)  = ex  <$> updateVar x ⊛ rename φ
-    rename (not φ)    = not <$> rename φ
-    rename (and φ ψ)  = and <$> rename φ ⊛ rename ψ
-    rename (or  φ ψ)  = or  <$> rename φ ⊛ rename ψ
-    rename (imp φ ψ)  = imp <$> rename φ ⊛ rename ψ
+      rename : ∀ {R F t p} → Formula R F V t p → RenameM (Formula R F (V ⊎ V′) t p)
+      rename (rel r ts) = rel r <$> mapM monad renameT ts
+      rename (all x φ)  = all <$> updateVar x ⊛ rename φ
+      rename (ex  x φ)  = ex  <$> updateVar x ⊛ rename φ
+      rename (not φ)    = not <$> rename φ
+      rename (and φ ψ)  = and <$> rename φ ⊛ rename ψ
+      rename (or  φ ψ)  = or  <$> rename φ ⊛ rename ψ
+      rename (imp φ ψ)  = imp <$> rename φ ⊛ rename ψ
 
   rename : ∀ {R F t p} → Stream V′ → Formula R F V t p → Formula R F (V ⊎ V′) t p
   rename vs f = proj₁ (Dummy.rename f empty vs)
