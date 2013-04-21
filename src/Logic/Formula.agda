@@ -127,16 +127,16 @@ module Rename
   localInsert v m = getVar >>= λ v′ → local (insert v v′) m >>= λ a → return (v′ , a)
 
   updateVar : V → RenameM (V ⊎ V′)
-  updateVar v = ask >>= λ t → return (maybe′ inj₂ (inj₁ v) (lookup v t))
+  updateVar v = maybe′ inj₂ (inj₁ v) ∘ lookup v <$> ask
 
   renameT : ∀ {F} → Term F V → RenameM (Term F (V ⊎ V′))
-  renameT     (var x) = updateVar x >>= return ∘ var
-  renameT {F} (fun f ts) = go ts >>= λ ts′ → return (fun f ts′)
+  renameT     (var x)    = var   <$> updateVar x
+  renameT {F} (fun f ts) = fun f <$> go ts
     where
       -- Help the termination checker a bit.
       go : List (Term F V) → RenameM (List (Term F (V ⊎ V′)))
       go []       = return []
-      go (t ∷ ts) = renameT t >>= λ t′ → go ts >>= λ ts′ → return (t′ ∷ ts′) 
+      go (t ∷ ts) = _∷_ <$> renameT t ⊛ go ts
 
   rename : ∀ {R F t p} → Formula R F V t p → RenameM (Formula R F (V ⊎ V′) t p)
   rename (rel r ts) = rel r <$> mapM monad renameT ts
