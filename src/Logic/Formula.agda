@@ -1,17 +1,17 @@
 module Logic.Formula where
 
 open import Category.Monad
+  using (module RawMonad)
 open import Coinduction
+  using (♭)
 open import Data.AVL
   using ()
-open import Data.Empty
-  using (⊥; ⊥-elim)
 open import Data.List
   using (List; []; _∷_; mapM)
 open import Data.Maybe
   using (Maybe; maybe′)
 open import Data.Product
-  using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂; map; zip)
+  using (Σ; Σ-syntax; _×_; _,_; proj₁; map; zip)
 open import Data.Stream
   using (Stream; _∷_)
 open import Data.Sum
@@ -19,12 +19,13 @@ open import Data.Sum
 open import Data.Unit
   using (⊤; tt)
 open import Function
+  using (_∘_; id)
 open import Level
   using ()
 open import Relation.Binary
+  using (Rel; IsStrictTotalOrder)
 open import Relation.Binary.PropositionalEquality
   using (_≡_)
-  renaming (refl to ≡-refl)
 
 open import Category.Monad.RWS
   using ()
