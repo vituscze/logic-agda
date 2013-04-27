@@ -44,10 +44,11 @@ data Formula (R F V : Set) : Prenex → Type → Set where
   not        : ∀ {p t}         (φ : Formula R F V p t) → Formula R F V (isPrenex p t) t
   and or imp : ∀ {p₁ p₂ t₁ t₂} (φ : Formula R F V p₁ t₁) (ψ : Formula R F V p₂ t₂) →
     let p = pBoth p₁ p₂
-        t = merge  t₁ t₂
+        t = merge t₁ t₂
     in Formula R F V (isPrenex p t) t
 
-prepend : ∀ {R F V p t₁} → List (Q V) → Formula R F V p t₁ → Σ[ t₂ ∈ Type ] (Formula R F V p t₂ × t₁ ≤t t₂)
+prepend : ∀ {R F V p t₁} → List (Q V) → Formula R F V p t₁ →
+          Σ[ t₂ ∈ Type ] (Formula R F V p t₂ × t₁ ≤t t₂)
 prepend {t₁ = t}  []           φ = _ , φ , t-refl t
 prepend           (q     ∷ qs) φ with prepend qs φ
 prepend {t₁ = t′} (all x ∷ qs) φ | t , φ′ , pf = merge t all , all x φ′ , merge-≤ t′ t pf
