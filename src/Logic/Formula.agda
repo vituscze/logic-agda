@@ -51,8 +51,8 @@ prepend : ∀ {R F V p t₁} → List (Q V) → Formula R F V p t₁ →
           Σ[ t₂ ∈ Type ] (Formula R F V p t₂ × t₁ ≤t t₂)
 prepend {t₁ = t}  []           φ = _ , φ , t-refl t
 prepend           (q     ∷ qs) φ with prepend qs φ
-prepend {t₁ = t′} (all x ∷ qs) φ | t , φ′ , pf = merge t all , all x φ′ , merge-≤ t′ t pf
-prepend {t₁ = t′} (ex  x ∷ qs) φ | t , φ′ , pf = both        , ex  x φ′ , bothMax t′
+prepend {t₁ = t′} (all x ∷ qs) φ | t , φ′ , pf = merge t all , all x φ′ , merge-≤ t′ _ pf
+prepend {t₁ = t′} (ex  x ∷ qs) φ | _ , φ′ , _  = both        , ex  x φ′ , bothMax t′
 
 remove : ∀ {R F V p t} → Formula R F V p t → Formula R F V yep none × PrenexTree V
 remove (rel r ts) = rel r ts , nil
@@ -64,8 +64,9 @@ remove (or  φ ψ)  = zip or  merge-tree (remove φ) (remove ψ)
 remove (imp φ ψ)  = zip imp (merge-tree ∘ swapAll) (remove φ) (remove ψ)
 
 module Rename
-  {V V′ : Set} {_<_ : Rel V Level.zero}
+  {V : Set} {_<_ : Rel V Level.zero}
   (isStrictTotalOrder : IsStrictTotalOrder _≡_ _<_)
+  {R F V′ : Set}
   where
 
   open Data.AVL (λ _ → V′) isStrictTotalOrder
@@ -87,16 +88,16 @@ module Rename
 
   private
     module Dummy where
-      renameT : ∀ {F} → Term F V → RenameM (Term F (V ⊎ V′))
-      renameT     (var x)    = var   <$> updateVar x
-      renameT {F} (fun f ts) = fun f <$> go ts
+      renameT : Term F V → RenameM (Term F (V ⊎ V′))
+      renameT (var x)    = var   <$> updateVar x
+      renameT (fun f ts) = fun f <$> go ts
         where
           -- Help the termination checker a bit.
           go : List (Term F V) → RenameM (List (Term F (V ⊎ V′)))
           go []       = return []
           go (t ∷ ts) = _∷_ <$> renameT t ⊛ go ts
 
-      rename : ∀ {R F t p} → Formula R F V t p → RenameM (Formula R F (V ⊎ V′) t p)
+      rename : ∀ {t p} → Formula R F V t p → RenameM (Formula R F (V ⊎ V′) t p)
       rename (rel r ts) = rel r <$> mapM monad renameT ts
       rename (all x φ)  = all <$> updateVar x ⊛ rename φ
       rename (ex  x φ)  = ex  <$> updateVar x ⊛ rename φ
@@ -105,5 +106,5 @@ module Rename
       rename (or  φ ψ)  = or  <$> rename φ ⊛ rename ψ
       rename (imp φ ψ)  = imp <$> rename φ ⊛ rename ψ
 
-  rename : ∀ {R F t p} → Stream V′ → Formula R F V t p → Formula R F (V ⊎ V′) t p
+  rename : ∀ {t p} → Stream V′ → Formula R F V t p → Formula R F (V ⊎ V′) t p
   rename vs f = proj₁ (Dummy.rename f empty vs)
