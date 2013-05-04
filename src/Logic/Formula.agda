@@ -11,7 +11,7 @@ open import Data.List
 open import Data.Maybe
   using (Maybe; maybe′)
 open import Data.Product
-  using (Σ; Σ-syntax; _×_; _,_; proj₁; map; zip)
+  using (Σ; Σ-syntax; _×_; _,_; proj₁; map; zip; uncurry)
 open import Data.Stream
   using (Stream; _∷_)
 open import Data.Sum
@@ -80,8 +80,8 @@ module Rename
   getVar : RenameM V′
   getVar _ (x ∷ xs) = x , ♭ xs , tt
 
-  localInsert : ∀ {A} → V → RenameM A → RenameM (V′ × A)
-  localInsert v m = getVar >>= λ v′ → local (insert v v′) m >>= λ a → return (v′ , a)
+  localInsert : ∀ {A} → V → RenameM A → RenameM ((V ⊎ V′) × A)
+  localInsert v m = getVar >>= λ v′ → local (insert v v′) m >>= λ a → return (inj₂ v′ , a)
 
   updateVar : V → RenameM (V ⊎ V′)
   updateVar v = maybe′ inj₂ (inj₁ v) ∘ lookup v <$> ask
@@ -99,8 +99,8 @@ module Rename
 
       rename : ∀ {t p} → Formula R F V t p → RenameM (Formula R F (V ⊎ V′) t p)
       rename (rel r ts) = rel r <$> mapM monad renameT ts
-      rename (all x φ)  = all <$> updateVar x ⊛ rename φ
-      rename (ex  x φ)  = ex  <$> updateVar x ⊛ rename φ
+      rename (all x φ)  = uncurry all <$> localInsert x (rename φ)
+      rename (ex  x φ)  = uncurry ex  <$> localInsert x (rename φ)
       rename (not φ)    = not <$> rename φ
       rename (and φ ψ)  = and <$> rename φ ⊛ rename ψ
       rename (or  φ ψ)  = or  <$> rename φ ⊛ rename ψ
